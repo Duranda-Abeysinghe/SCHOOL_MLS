@@ -1,52 +1,77 @@
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import API from '../../api/axios';
 
 export default function MyMarks() {
   const { t } = useLanguage();
+  const [marks,   setMarks]   = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const exams = [
-    { subject: 'Mathematics', termTest1: 78, termTest2: 85, midTerm: 82, final: 88 },
-    { subject: 'Science',     termTest1: 65, termTest2: 72, midTerm: 70, final: 75 },
-    { subject: 'English',     termTest1: 88, termTest2: 90, midTerm: 85, final: 92 },
-    { subject: 'History',     termTest1: 60, termTest2: 68, midTerm: 65, final: 70 },
-  ];
+  useEffect(() => {
+    API.get('/marks/student/1')
+      .then(res => setMarks(res.data))
+      .catch(() => setMarks([
+        { id: 1, subjectName: 'Mathematics', examType: 'Term Test 1', marks: 85, grade: 'A'  },
+        { id: 2, subjectName: 'Science',     examType: 'Term Test 1', marks: 72, grade: 'B'  },
+        { id: 3, subjectName: 'English',     examType: 'Term Test 1', marks: 90, grade: 'A+' },
+      ]))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const getGrade = (m) =>
-    m >= 90 ? 'A+' : m >= 80 ? 'A' : m >= 70 ? 'B' : m >= 60 ? 'C' : m >= 50 ? 'D' : 'F';
-
-  const getColor = (m) =>
-    m >= 80 ? 'badge-green' : m >= 60 ? 'badge-blue' : m >= 50 ? 'badge-yellow' : 'badge-red';
+  const getColor = (g) =>
+    g?.startsWith('A') ? 'badge-green' :
+    g?.startsWith('B') ? 'badge-blue'  :
+    g?.startsWith('C') ? 'badge-yellow': 'badge-red';
 
   return (
     <div>
       <div className="page-header"><h1>📝 {t('viewMyMarks')}</h1></div>
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>{t('subject')}</th>
-              <th>Term Test 1</th>
-              <th>Term Test 2</th>
-              <th>Mid Term</th>
-              <th>Final</th>
-              <th>{t('grade')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.map(e => {
-              const avg = Math.round((e.termTest1 + e.termTest2 + e.midTerm + e.final) / 4);
-              return (
-                <tr key={e.subject}>
-                  <td><strong>{e.subject}</strong></td>
-                  {[e.termTest1, e.termTest2, e.midTerm, e.final].map((m, i) => (
-                    <td key={i}><span className={`badge ${getColor(m)}`}>{m}%</span></td>
-                  ))}
-                  <td><span className={`badge ${getColor(avg)}`}>{getGrade(avg)}</span></td>
+
+      {loading ? (
+        <div className="card text-center"><p>{t('loading')}</p></div>
+      ) : (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{t('subject')}</th>
+                <th>Exam Type</th>
+                <th>{t('score')}</th>
+                <th>{t('grade')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {marks.map((m, i) => (
+                <tr key={m.id}>
+                  <td>{i + 1}</td>
+                  <td><strong>{m.subjectName}</strong></td>
+                  <td>{m.examType}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>{m.marks}%</span>
+                      <div className="progress-bar" style={{ width: '80px', margin: 0 }}>
+                        <div
+                          className={`progress-fill ${m.marks >= 80 ? 'progress-green' : m.marks >= 60 ? 'progress-blue' : 'progress-yellow'}`}
+                          style={{ width: `${m.marks}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className={`badge ${getColor(m.grade)}`}>{m.grade}</span></td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ))}
+              {marks.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="text-center" style={{ padding: '30px', color: '#94a3b8' }}>
+                    No marks found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
