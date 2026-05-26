@@ -38,7 +38,7 @@ export default function StudentAdd() {
       });
       setSuccess(true);
       setTimeout(() => navigate('/admin/students'), 1500);
-    } catch (err) {
+    } catch  {
       setError('Failed to add student. Please try again.');
     } finally {
       setLoading(false);
