@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import API from '../../api/axios';
 
 export default function MyAttendance() {
-  const { user } = useAuth();
+  
   const { t } = useLanguage();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
