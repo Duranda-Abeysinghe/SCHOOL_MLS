@@ -1,126 +1,142 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../../api/axios';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export default function TeacherAdd() {
   const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
   const { t } = useLanguage();
-  const [form, setForm] = useState({
-    fullName: '', email: '', phone: '',
-    gender: '', subject: '', address: '', status: 'Active'
-  });
-  const [success, setSuccess] = useState(false);
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const update = (f, v) => setForm(p => ({ ...p, [f]: v }));
+  const [form, setForm] = useState({
+    fullName: '', email: '', password: '', phone: '',
+    gender: '', subject: '', address: '', status: 'Active',
+  });
+
+  const [subjects, setSubjects] = useState([]);
+  const [success,  setSuccess]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
+
+  useEffect(() => {
+    API.get('/teachers/subjects')
+      .then(res => setSubjects(res.data))
+      .catch(() => setSubjects([]));
+  }, []);
+
+  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    if (!form.password || form.password.length < 4) {
+      setError('Password must be at least 4 characters.');
+      return;
+    }
+    setLoading(true); setError('');
     try {
-      await API.post('/teachers', {
-        fullName: form.fullName,
-        email:    form.email,
-        phone:    form.phone,
-        gender:   form.gender,
-        subject:  form.subject,
-        address:  form.address,
-        status:   form.status,
-        userId:   null
+      await API.post('/teachers/with-account', {
+        fullName: form.fullName, email: form.email, password: form.password,
+        phone: form.phone, gender: form.gender,
+        subject: form.subject, address: form.address, status: form.status,
       });
       setSuccess(true);
       setTimeout(() => navigate('/admin/teachers'), 1500);
     } catch (err) {
-      setError('Failed to add teacher. Email may already exist.');
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.message || 'Failed to add teacher.');
+    } finally { setLoading(false); }
   };
 
   return (
     <div>
       <div className="page-header">
-        <h1>➕ {t('addTeacher')}</h1>
-        <button className="btn btn-outline" onClick={() => navigate('/admin/teachers')}>
-          ← {t('back')}
-        </button>
+        <h1>➕ Add Teacher</h1>
+        <button className="btn btn-outline" onClick={() => navigate('/admin/teachers')}>← Back</button>
       </div>
 
-      {success && <div className="alert alert-success">✅ Teacher added successfully!</div>}
+      {success && <div className="alert alert-success">✅ Teacher added &amp; login created! Redirecting...</div>}
       {error   && <div className="alert alert-error">❌ {error}</div>}
 
       <div className="card">
         <form onSubmit={handleSubmit}>
+          <h3 style={{ marginBottom: '18px', color: '#2563eb' }}>👤 Personal Information</h3>
           <div className="grid-3">
+
             <div className="form-group">
-              <label>{t('fullName')} *</label>
-              <input required placeholder="Mr. John Doe"
-                value={form.fullName}
+              <label>Full Name *</label>
+              <input required placeholder="Mr. Sunil Perera" value={form.fullName}
                 onChange={e => update('fullName', e.target.value)} />
             </div>
+
             <div className="form-group">
-              <label>{t('email')} *</label>
-              <input required type="email" placeholder="john@school.com"
-                value={form.email}
+              <label>Email *</label>
+              <input required type="email" placeholder="teacher@school.com" value={form.email}
                 onChange={e => update('email', e.target.value)} />
             </div>
+
             <div className="form-group">
-              <label>Subject *</label>
-              <select required value={form.subject}
-                onChange={e => update('subject', e.target.value)}>
-                <option value="">Select Subject</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="Science">Science</option>
-                <option value="English">English</option>
-                <option value="History">History</option>
-                <option value="Geography">Geography</option>
-                <option value="Commerce">Commerce</option>
-                <option value="Art">Art</option>
-                <option value="Music">Music</option>
-                <option value="Physical Education">Physical Education</option>
-              </select>
+              <label style={{ color: '#dc2626', fontWeight: 600 }}>🔑 Login Password *</label>
+              <input required type="password" placeholder="Min 4 characters" value={form.password}
+                onChange={e => update('password', e.target.value)}
+                style={{ borderColor: form.password.length >= 4 ? '#16a34a' : '#dc2626' }} />
+              <small style={{ color: '#64748b', fontSize: '11px', display: 'block', marginTop: '3px' }}>
+                Saved to Users table. Teacher logs in with this password.
+              </small>
             </div>
+
             <div className="form-group">
-              <label>{t('phone')}</label>
-              <input placeholder="077 123 4567"
-                value={form.phone}
+              <label>Phone</label>
+              <input placeholder="077 123 4567" value={form.phone}
                 onChange={e => update('phone', e.target.value)} />
             </div>
+
             <div className="form-group">
-              <label>{t('gender')}</label>
-              <select value={form.gender}
-                onChange={e => update('gender', e.target.value)}>
+              <label>Gender *</label>
+              <select required value={form.gender} onChange={e => update('gender', e.target.value)}>
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
             </div>
+
             <div className="form-group">
-              <label>{t('status')}</label>
-              <select value={form.status}
-                onChange={e => update('status', e.target.value)}>
+              <label>Status</label>
+              <select value={form.status} onChange={e => update('status', e.target.value)}>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
             </div>
+
           </div>
+
           <div className="form-group">
-            <label>{t('address')}</label>
-            <textarea rows="2" placeholder="No. 12, Main Street..."
-              value={form.address}
-              onChange={e => update('address', e.target.value)} />
+            <label>Address</label>
+            <textarea rows="2" placeholder="No. 12, Main Street, Colombo"
+              value={form.address} onChange={e => update('address', e.target.value)} />
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+
+          <h3 style={{ margin: '24px 0 16px', color: '#2563eb' }}>📚 Professional Information</h3>
+          <div className="grid-3">
+
+            <div className="form-group">
+              <label>Subject *</label>
+              <input required list="subject-options" placeholder="Mathematics"
+                value={form.subject} onChange={e => update('subject', e.target.value)} />
+              <datalist id="subject-options">
+                {subjects.map(s => <option key={s} value={s} />)}
+              </datalist>
+              <small style={{ color: '#64748b', fontSize: '11px', display: 'block', marginTop: '3px' }}>
+                Pick from list or type a new subject.
+              </small>
+            </div>
+
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
             <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-              {loading ? '⏳ Saving...' : `💾 ${t('save')} Teacher`}
+              {loading ? '⏳ Saving...' : '💾 Save Teacher'}
             </button>
             <button type="button" className="btn btn-outline"
-              onClick={() => navigate('/admin/teachers')}>
-              {t('cancel')}
-            </button>
+              onClick={() => navigate('/admin/teachers')}>Cancel</button>
           </div>
         </form>
       </div>

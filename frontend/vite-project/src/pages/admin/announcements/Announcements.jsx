@@ -14,15 +14,12 @@ export default function Announcements() {
     title: '', message: '', target: 'All', priority: 'Normal'
   });
 
-  const fetchAnnouncements = () => {
-    setLoading(true);
+  useEffect(() => {
     API.get('/announcements')
       .then(res => setAnnouncements(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchAnnouncements(); }, []);
+  }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -78,7 +75,7 @@ export default function Announcements() {
           <h3 style={{ marginBottom: '16px', color: '#2563eb' }}>📝 New Announcement</h3>
           <form onSubmit={handleAdd}>
             <div className="grid-2">
-              <div className="form-group" style={{ gridColumn: '1 / 2' }}>
+              <div className="form-group">
                 <label>Title *</label>
                 <input required placeholder="Announcement title..."
                   value={form.title}
@@ -133,9 +130,10 @@ export default function Announcements() {
               <div className="flex-between" style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1rem' }}>{a.title}</strong>
-                  <span className={`badge ${a.priority === 'High' ? 'badge-red' : a.priority === 'Urgent' ? 'badge-purple' : 'badge-blue'}`}>
-                    {a.priority}
-                  </span>
+                  <span className={`badge ${
+                    a.priority === 'High'   ? 'badge-red'    :
+                    a.priority === 'Urgent' ? 'badge-purple' : 'badge-blue'
+                  }`}>{a.priority}</span>
                   <span className="badge badge-gray">📣 {a.target}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

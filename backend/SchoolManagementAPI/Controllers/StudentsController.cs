@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementAPI.Data;
@@ -15,81 +15,105 @@ public class StudentsController : ControllerBase
     private readonly AppDbContext _db;
     public StudentsController(AppDbContext db) { _db = db; }
 
-    // GET api/students
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
         [FromQuery] string? status,
-        [FromQuery] int?    classId,
-        [FromQuery] int?    academicYear)
+        [FromQuery] int? classId,
+        [FromQuery] int? academicYear)
     {
-        var q = _db.Students.Include(s => s.Class).AsQueryable();
+        var q = _db.Students
+            .Include(s => s.Class)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            q = q.Where(s => s.FullName.Contains(search) || s.AdmissionNo.Contains(search) || s.Email.Contains(search));
+            q = q.Where(s => s.FullName.Contains(search) ||
+                             s.Email.Contains(search) ||
+                             s.AdmissionNo.Contains(search));
 
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
             q = q.Where(s => s.Status == status);
 
         if (classId.HasValue)
-            q = q.Where(s => s.ClassId == classId);
+            q = q.Where(s => s.ClassId == classId.Value);
 
         if (academicYear.HasValue)
-            q = q.Where(s => s.AcademicYear == academicYear);
+            q = q.Where(s => s.AcademicYear == academicYear.Value);
 
         var students = await q
-            .OrderByDescending(s => s.JoinDate)
+            .OrderBy(s => s.FullName)
             .Select(s => new
             {
-                s.Id, s.AdmissionNo, s.FullName, s.Email, s.Phone,
-                s.Gender, s.DateOfBirth, s.Address, s.ParentName,
-                s.ParentContact, s.Status, s.ClassId, s.UserId,
-                s.JoinDate, s.AcademicYear,
-                ClassName = s.Class != null ? s.Class.ClassName + " " + s.Class.Section : null
+                s.Id,
+                s.AdmissionNo,
+                s.FullName,
+                s.Email,
+                s.Phone,
+                s.Gender,
+                s.DateOfBirth,
+                s.Address,
+                s.ParentName,
+                s.ParentContact,
+                s.Status,
+                s.ClassId,
+                ClassName = s.Class != null ? s.Class.ClassName + " " + s.Class.Section : null,
+                s.UserId,
+                s.JoinDate,
+                s.AcademicYear
             })
             .ToListAsync();
 
         return Ok(students);
     }
 
-    // GET api/students/{id}
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var s = await _db.Students.Include(s => s.Class)
-                                   .FirstOrDefaultAsync(s => s.Id == id);
-        if (s == null)
+        var student = await _db.Students
+            .Include(s => s.Class)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (student == null)
             return NotFound(new ResponseDto { Success = false, Message = "Not found" });
 
         return Ok(new
         {
-            s.Id, s.AdmissionNo, s.FullName, s.Email, s.Phone,
-            s.Gender, s.DateOfBirth, s.Address, s.ParentName,
-            s.ParentContact, s.Status, s.ClassId, s.UserId,
-            s.JoinDate, s.AcademicYear,
-            ClassName = s.Class != null ? s.Class.ClassName + " " + s.Class.Section : null
+            student.Id,
+            student.AdmissionNo,
+            student.FullName,
+            student.Email,
+            student.Phone,
+            student.Gender,
+            student.DateOfBirth,
+            student.Address,
+            student.ParentName,
+            student.ParentContact,
+            student.Status,
+            student.ClassId,
+            ClassName = student.Class != null ? student.Class.ClassName + " " + student.Class.Section : null,
+            student.UserId,
+            student.JoinDate,
+            student.AcademicYear
         });
     }
 
-    // GET api/students/count
     [HttpGet("count")]
     public async Task<IActionResult> GetCount()
         => Ok(await _db.Students.CountAsync());
 
-    // GET api/students/academic-years  — returns distinct years for dropdown
     [HttpGet("academic-years")]
     public async Task<IActionResult> GetAcademicYears()
     {
         var years = await _db.Students
-            .Where(s => s.AcademicYear != null)
-            .Select(s => s.AcademicYear)
+            .Where(s => s.AcademicYear.HasValue)
+            .Select(s => s.AcademicYear!.Value)
             .Distinct()
             .OrderByDescending(y => y)
             .ToListAsync();
+
         return Ok(years);
     }
 
-    // POST api/students/with-account  — create student + login account
     [HttpPost("with-account")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateWithAccount([FromBody] StudentWithAccountDto dto)
@@ -100,39 +124,34 @@ public class StudentsController : ControllerBase
             if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
                 return BadRequest(new ResponseDto { Success = false, Message = "Email already exists" });
 
-            // Create login account
             var user = new User
             {
-                Name     = dto.FullName,
-                Email    = dto.Email,
+                Name = dto.FullName,
+                Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role     = "Student"
+                Role = "Student"
             };
+
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            // Auto-generate admission number
-            var count   = await _db.Students.CountAsync();
-            var year    = dto.AcademicYear ?? DateTime.Now.Year;
-            var admNo   = $"S{year}{(count + 1):D3}";
-
             var student = new Student
             {
-                AdmissionNo   = admNo,
-                FullName      = dto.FullName,
-                Email         = dto.Email,
-                Phone         = dto.Phone ?? string.Empty,
-                Gender        = dto.Gender ?? string.Empty,
-                DateOfBirth   = dto.DateOfBirth,
-                Address       = dto.Address ?? string.Empty,
-                ParentName    = dto.ParentName ?? string.Empty,
-                ParentContact = dto.ParentContact ?? string.Empty,
-                Status        = "Active",
-                ClassId       = dto.ClassId,
-                UserId        = user.Id,
-                JoinDate      = DateTime.Now,
-                AcademicYear  = year
+                AdmissionNo = await GenerateAdmissionNo(),
+                FullName = dto.FullName,
+                Email = dto.Email,
+                Phone = dto.Phone ?? "",
+                Gender = dto.Gender ?? "",
+                DateOfBirth = dto.DateOfBirth,
+                Address = dto.Address ?? "",
+                ParentName = dto.ParentName ?? "",
+                ParentContact = dto.ParentContact ?? "",
+                ClassId = dto.ClassId,
+                AcademicYear = dto.AcademicYear,
+                UserId = user.Id,
+                Status = "Active"
             };
+
             _db.Students.Add(student);
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
@@ -140,8 +159,15 @@ public class StudentsController : ControllerBase
             return Ok(new ResponseDto
             {
                 Success = true,
-                Message = "Student account created",
-                Data    = new { student.Id, student.AdmissionNo, student.FullName, student.Email, UserId = user.Id }
+                Message = "Student account created successfully",
+                Data = new
+                {
+                    student.Id,
+                    student.AdmissionNo,
+                    student.FullName,
+                    student.Email,
+                    UserId = user.Id
+                }
             });
         }
         catch (Exception ex)
@@ -151,7 +177,6 @@ public class StudentsController : ControllerBase
         }
     }
 
-    // PUT api/students/{id}
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] StudentUpdateDto dto)
@@ -160,22 +185,31 @@ public class StudentsController : ControllerBase
         if (student == null)
             return NotFound(new ResponseDto { Success = false, Message = "Not found" });
 
-        student.FullName      = dto.FullName;
-        student.Email         = dto.Email;
-        student.Phone         = dto.Phone ?? string.Empty;
-        student.Gender        = dto.Gender ?? string.Empty;
-        student.Address       = dto.Address ?? string.Empty;
-        student.ParentName    = dto.ParentName ?? string.Empty;
-        student.ParentContact = dto.ParentContact ?? string.Empty;
-        student.Status        = dto.Status;
-        student.ClassId       = dto.ClassId;
-        student.AcademicYear  = dto.AcademicYear;
+        student.FullName = dto.FullName;
+        student.Email = dto.Email;
+        student.Phone = dto.Phone ?? "";
+        student.Gender = dto.Gender ?? "";
+        student.Address = dto.Address ?? "";
+        student.ParentName = dto.ParentName ?? "";
+        student.ParentContact = dto.ParentContact ?? "";
+        student.Status = dto.Status;
+        student.ClassId = dto.ClassId;
+        student.AcademicYear = dto.AcademicYear;
+
+        if (student.UserId.HasValue)
+        {
+            var user = await _db.Users.FindAsync(student.UserId.Value);
+            if (user != null)
+            {
+                user.Name = dto.FullName;
+                user.Email = dto.Email;
+            }
+        }
 
         await _db.SaveChangesAsync();
         return Ok(new ResponseDto { Success = true, Message = "Updated", Data = student });
     }
 
-    // DELETE api/students/{id}
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
@@ -184,8 +218,23 @@ public class StudentsController : ControllerBase
         if (student == null)
             return NotFound(new ResponseDto { Success = false, Message = "Not found" });
 
+        if (student.UserId.HasValue)
+        {
+            var user = await _db.Users.FindAsync(student.UserId.Value);
+            if (user != null) _db.Users.Remove(user);
+        }
+
         _db.Students.Remove(student);
         await _db.SaveChangesAsync();
         return Ok(new ResponseDto { Success = true, Message = "Deleted" });
+    }
+
+    private async Task<string> GenerateAdmissionNo()
+    {
+        var nextId = await _db.Students.AnyAsync()
+            ? await _db.Students.MaxAsync(s => s.Id) + 1
+            : 1;
+
+        return $"ADM{DateTime.Now.Year}{nextId:D4}";
     }
 }

@@ -4,104 +4,166 @@ import API from '../../../api/axios';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export default function TeacherList() {
+  // eslint-disable-next-line no-unused-vars
   const { t } = useLanguage();
-  const [teachers, setTeachers] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState('');
 
+  const [teachers,      setTeachers]      = useState([]);
+  const [subjects,      setSubjects]      = useState([]);
+  const [search,        setSearch]        = useState('');
+  const [filterStatus,  setFilterStatus]  = useState('All');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [loading,       setLoading]       = useState(true);
+
+  // Load subject filter options from DB
   useEffect(() => {
-    API.get('/teachers')
-      .then(res => setTeachers(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    API.get('/teachers/subjects')
+      .then(res => setSubjects(res.data))
+      .catch(() => setSubjects([]));
   }, []);
 
+  // Reload teachers when filters change (server-side filtering)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search)                       params.append('search',  search);
+    if (filterStatus !== 'All')       params.append('status',  filterStatus);
+    if (filterSubject)                params.append('subject', filterSubject);
+
+    API.get(`/teachers?${params.toString()}`)
+      .then(res => setTeachers(res.data))
+      .catch(() => setTeachers([]))
+      .finally(() => setLoading(false));
+  }, [search, filterStatus, filterSubject]);
+
   const handleDelete = async (id) => {
-    if (!confirm('Delete this teacher?')) return;
+    if (!confirm('Delete this teacher and their login account?')) return;
     try {
       await API.delete(`/teachers/${id}`);
-      setTeachers(p => p.filter(t => t.id !== id));
-    } catch { alert('Delete failed.'); }
+      // Backend also removes the linked Users row
+      setTeachers(prev => prev.filter(t => t.id !== id));
+    } catch {
+      alert('Delete failed.');
+    }
   };
-
-  const filtered = teachers.filter(t =>
-    t.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-    t.email?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div>
+      {/* Header */}
       <div className="page-header">
-        <h1>👨‍🏫 {t('teachers')}</h1>
+        <h1>👨‍🏫 Teachers</h1>
         <Link to="/admin/teachers/add" className="btn btn-primary">
-          ➕ {t('addTeacher')}
+          ➕ Add Teacher
         </Link>
       </div>
 
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div className="search-bar">
-          <span>🔍</span>
-          <input
-            placeholder={`${t('search')} ${t('teachers')}...`}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      {/* Filters */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+
+          <div className="search-bar" style={{ flex: '1', minWidth: '200px' }}>
+            <span>🔍</span>
+            <input
+              placeholder="Search by name, email or subject..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Subject filter — from DB */}
+          <select
+            value={filterSubject}
+            onChange={e => setFilterSubject(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px' }}>
+            <option value="">All Subjects</option>
+            {subjects.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+
+          {/* Status filter */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {['All', 'Active', 'Inactive'].map(f => (
+              <button key={f}
+                onClick={() => setFilterStatus(f)}
+                className={`btn btn-sm ${filterStatus === f ? 'btn-primary' : 'btn-outline'}`}>
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Table */}
       {loading ? (
-        <div className="card text-center"><p>{t('loading')}</p></div>
+        <div className="card text-center"><p>⏳ Loading...</p></div>
       ) : (
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>{t('name')}</th>
-                <th>{t('subject')}</th>
-                <th>{t('email')}</th>
-                <th>{t('phone')}</th>
-                <th>{t('status')}</th>
-                <th>{t('actions')}</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Subject</th>
+                <th>Gender</th>
+                <th>Status</th>
+                <th>Login</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((teacher, i) => (
+              {teachers.map((teacher, i) => (
                 <tr key={teacher.id}>
-                  <td>{i + 1}</td>
+                  <td style={{ color: '#94a3b8' }}>{i + 1}</td>
                   <td><strong>{teacher.fullName}</strong></td>
-                  <td><span className="badge badge-purple">{teacher.subject}</span></td>
                   <td>{teacher.email}</td>
-                  <td>{teacher.phone}</td>
+                  <td>{teacher.phone || '—'}</td>
+                  <td>
+                    <span className="badge badge-gray">{teacher.subject || '—'}</span>
+                  </td>
+                  <td>{teacher.gender || '—'}</td>
                   <td>
                     <span className={`badge ${teacher.status === 'Active' ? 'badge-green' : 'badge-red'}`}>
-                      {teacher.status === 'Active' ? t('active') : t('inactive')}
+                      {teacher.status}
                     </span>
                   </td>
                   <td>
-                    <button
-                      onClick={() => handleDelete(teacher.id)}
-                      className="btn btn-danger btn-sm"
-                    >
-                      🗑️ {t('delete')}
-                    </button>
+                    {/* Shows whether a login account exists in Users table */}
+                    {teacher.userId ? (
+                      <span className="badge badge-green">✅ Has Account</span>
+                    ) : (
+                      <span className="badge badge-red">❌ No Account</span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <Link to={`/admin/teachers/edit/${teacher.id}`} className="btn btn-warning btn-sm">
+                        ✏️ Edit
+                      </Link>
+                      <button onClick={() => handleDelete(teacher.id)} className="btn btn-danger btn-sm">
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {teachers.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="text-center" style={{ padding: '30px', color: '#94a3b8' }}>
+                  <td colSpan="9" className="text-center" style={{ padding: '30px', color: '#94a3b8' }}>
                     No teachers found.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-          <div className="table-footer">
-            {filtered.length} / {teachers.length} {t('teachers')}
-          </div>
         </div>
       )}
+
+      <div style={{ padding: '14px 18px', color: '#94a3b8', fontSize: '0.85rem' }}>
+        {teachers.length} teachers shown
+      </div>
     </div>
   );
 }
