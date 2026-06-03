@@ -121,12 +121,12 @@ public class StudentsController : ControllerBase
                 AdmissionNo   = admNo,
                 FullName      = dto.FullName,
                 Email         = dto.Email,
-                Phone         = dto.Phone,
-                Gender        = dto.Gender,
+                Phone         = dto.Phone ?? string.Empty,
+                Gender        = dto.Gender ?? string.Empty,
                 DateOfBirth   = dto.DateOfBirth,
-                Address       = dto.Address,
-                ParentName    = dto.ParentName,
-                ParentContact = dto.ParentContact,
+                Address       = dto.Address ?? string.Empty,
+                ParentName    = dto.ParentName ?? string.Empty,
+                ParentContact = dto.ParentContact ?? string.Empty,
                 Status        = "Active",
                 ClassId       = dto.ClassId,
                 UserId        = user.Id,
@@ -162,11 +162,11 @@ public class StudentsController : ControllerBase
 
         student.FullName      = dto.FullName;
         student.Email         = dto.Email;
-        student.Phone         = dto.Phone;
-        student.Gender        = dto.Gender;
-        student.Address       = dto.Address;
-        student.ParentName    = dto.ParentName;
-        student.ParentContact = dto.ParentContact;
+        student.Phone         = dto.Phone ?? string.Empty;
+        student.Gender        = dto.Gender ?? string.Empty;
+        student.Address       = dto.Address ?? string.Empty;
+        student.ParentName    = dto.ParentName ?? string.Empty;
+        student.ParentContact = dto.ParentContact ?? string.Empty;
         student.Status        = dto.Status;
         student.ClassId       = dto.ClassId;
         student.AcademicYear  = dto.AcademicYear;

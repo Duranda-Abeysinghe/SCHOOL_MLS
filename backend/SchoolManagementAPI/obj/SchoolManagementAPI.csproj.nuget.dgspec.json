@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj": {}
+    "c:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj": {
+    "c:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj",
+        "projectUniqueName": "c:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj",
         "projectName": "SchoolManagementAPI",
-        "projectPath": "C:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj",
+        "projectPath": "c:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\SchoolManagementAPI.csproj",
         "packagesPath": "C:\\Users\\VICTUS\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\obj\\",
+        "outputPath": "c:\\Users\\VICTUS\\Documents\\GitHub\\Scool_MLS\\backend\\SchoolManagementAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\VICTUS\\AppData\\Roaming\\NuGet\\NuGet.Config"

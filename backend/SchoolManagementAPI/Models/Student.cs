@@ -16,6 +16,7 @@ public class Student
     public int? ClassId { get; set; }
     public int? UserId { get; set; }
     public DateTime JoinDate { get; set; } = DateTime.Now;
+    public int? AcademicYear { get; set; }
     public Class? Class { get; set; }
     public User? User { get; set; }
 }
